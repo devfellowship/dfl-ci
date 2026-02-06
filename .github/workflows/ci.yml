@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (JSON report)
+        id: lint
+        run: npm run lint:ci
+        continue-on-error: true
+
+      - name: Typecheck
+        run: npm run typecheck
+        if: ${{ always() }}
+
+      - name: Reviewdog (ESLint inline comments)
+        if: ${{ always() && steps.lint.outcome == 'failure' }}
+        uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          filter_mode: diff_context
+          fail_level: error
+          eslint_flags: "--config eslint.config.js ."
+
+      - name: Fail if lint failed
+        if: ${{ steps.lint.outcome == 'failure' }}
+        run: exit 1
+
+  comment:
+    needs: ci
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on PR when CI fails
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const marker = "❌ CI falhou (lint/typecheck).";
+
+            const body = [
+              marker,
+              `Logs completos: ${runUrl}`,
+              "Próximo passo: abrir os logs, corrigir o erro apontado e rodar `npm run lint` e `npm run typecheck` localmente antes do próximo push."
+            ].join("\n\n");
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            // Procura comentário existente do bot com o marcador
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+            });
+
+            const existing = comments.find(
+              (c) =>
+                c.user?.login === "github-actions[bot]" &&
+                c.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }

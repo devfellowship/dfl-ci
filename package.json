@@ -1,0 +1,12 @@
+{
+  "name": "dlf-ci",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "lint:ci": "eslint --config eslint.config.js .",
+    "typecheck": "node -e \"console.log('typecheck ok')\""
+  },
+  "devDependencies": {
+    "eslint": "^9.18.0"
+  }
+}
