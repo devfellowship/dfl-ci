@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "lint:ci": "eslint --config eslint.config.js .",
-    "typecheck": "node -e \"console.log('typecheck ok')\""
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "eslint": "^9.18.0"
+    "eslint": "^9.18.0",
+    "typescript": "^5.7.2",
+    "@typescript-eslint/parser": "^8.20.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0"
   }
 }

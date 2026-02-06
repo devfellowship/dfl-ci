@@ -5,9 +5,14 @@ Workflow de CI reutilizável para validar código em pull requests: roda lint e 
 ## O que faz
 
 1. **Lint com ESLint** — valida o código e gera relatório
-2. **Typecheck** — verifica tipos (se aplicável ao projeto)
+2. **Typecheck** — verifica tipos TypeScript
 3. **Code review inline** — Reviewdog comenta erros diretamente nas linhas do PR
 4. **Notificação de falha** — bot comenta no PR se algo quebrar
+
+**Regras de qualidade (warnings):**
+- ⚠️ Arquivos com mais de 150 linhas
+- ⚠️ Comentários no código
+- ⚠️ Regras TypeScript recomendadas
 
 **Comportamento:**
 - ✅ Sucesso → CI passa em silêncio
@@ -46,8 +51,10 @@ Substitua `SEU-USUARIO` pelo usuário/org do GitHub onde este repo está.
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "eslint": "^9.x",
-    "typescript": "^5.x"
+    "eslint": "^9.18.0",
+    "typescript": "^5.7.2",
+    "@typescript-eslint/parser": "^8.20.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0"
   }
 }
 ```
@@ -56,25 +63,62 @@ Ajuste os comandos conforme o setup do seu projeto. O importante é que `lint:ci
 
 ### 3. Crie eslint.config.js
 
-Exemplo básico (ajuste as regras pro seu caso):
+Configuração mínima para TypeScript com regras de qualidade:
 
 ```js
+const tsPlugin = require("@typescript-eslint/eslint-plugin");
+const tsParser = require("@typescript-eslint/parser");
+
 module.exports = [
   {
-    files: ["**/*.{js,ts,tsx}"],
+    files: ["**/*.{ts,tsx}"],
     languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module"
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true }
+      }
+    },
+    plugins: {
+      "@typescript-eslint": tsPlugin
     },
     rules: {
-      "no-console": "warn",
-      "no-unused-vars": "error"
+      "max-lines": ["warn", { max: 150 }],
+      "no-inline-comments": ["warn"],
+      "line-comment-position": ["warn", { "position": "above" }],
+      ...tsPlugin.configs.recommended.rules
     }
   }
 ];
 ```
 
-### 4. Instale as dependências
+Ajuste as regras conforme necessário. As regras acima garantem:
+- Aviso em arquivos com +150 linhas
+- Aviso em comentários inline
+- TypeScript com regras recomendadas
+
+### 4. Crie tsconfig.json
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020"],
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "noEmit": true
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}
+```
+
+### 5. Instale as dependências
 
 ```bash
 npm install
@@ -85,9 +129,11 @@ Pronto. Abra um PR e o CI vai rodar automaticamente.
 ## Requisitos
 
 - Node.js 20+
+- TypeScript (`.ts`, `.tsx`)
 - `package.json` com scripts `lint:ci` e `typecheck`
-- ESLint configurado
+- ESLint + plugins TypeScript instalados
 - `package-lock.json` commitado
+- `tsconfig.json` configurado
 
 ## Estrutura mínima esperada
 
@@ -97,9 +143,11 @@ seu-repo/
 │   └── workflows/
 │       └── ci.yml
 ├── eslint.config.js
+├── tsconfig.json
 ├── package.json
 ├── package-lock.json
-└── src/ (ou onde estiver seu código)
+└── src/
+    └── *.ts ou *.tsx (seu código TypeScript)
 ```
 
 ## Exemplo de falha
