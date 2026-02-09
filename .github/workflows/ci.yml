@@ -184,10 +184,12 @@ jobs:
               'no-inline-comments',
               'line-comment-position',
               'no-warning-comments',
+              'spaced-comment',
               'max-lines',
               'max-lines-per-function',
               'max-statements',
               'max-params',
+              '@typescript-eslint/no-unused-vars',
             ]);
 
             // ESLint — só regras que o architecture-check NÃO cobre
