@@ -1,4 +1,4 @@
-# DLF-CI — Revisor de PR automático
+# dfl-ci — Revisor de PR automático
 
 Bot que revisa Pull Requests no GitHub: comenta **nas linhas** dos arquivos alterados (como um revisor de verdade) e só desbloqueia o merge quando você aprovar.
 
